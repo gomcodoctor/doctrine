@@ -16,6 +16,7 @@ use Doctrine\Common\Persistence\Mapping\ClassMetadata;
  * on batch processing.
  *
  * @author David de Boer <david@ddeboer.nl>
+ * @editedBy gomcodoctor <info@freeopd.com>
  */
 class DoctrineWriter implements Writer, Writer\FlushableWriter
 {
@@ -72,6 +73,16 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
      * @var array
      */
     protected $lookupMethod;
+
+
+    /** @var  array */
+    protected $defaultFields =[];
+
+    /** @var int  */
+    protected $_rowPersisted = 0;
+
+    /** @var int  */
+    protected $_doctrineFlushQueueSize = 20;
 
     /**
      * Constructor
@@ -175,12 +186,23 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
      */
     public function writeItem(array $item)
     {
+        $item = array_merge($this->defaultFields, $item);
+//        dump($item);
         $object = $this->findOrCreateItem($item);
 
         $this->loadAssociationObjectsToObject($item, $object);
         $this->updateObject($item, $object);
 
+//        dump($object);
+//        exit();
+
         $this->objectManager->persist($object);
+        $this->_rowPersisted++;
+
+        if($this->_rowPersisted > $this->_doctrineFlushQueueSize){
+            $this->flush();
+            $this->_rowPersisted = 0;
+        }
     }
 
     /**
@@ -228,17 +250,26 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
      */
     protected function updateObject(array $item, $object)
     {
-        $fieldNames = array_merge($this->objectMetadata->getFieldNames(), $this->objectMetadata->getAssociationNames());
+        //$fieldNames = array_merge($this->objectMetadata->getFieldNames(), $this->objectMetadata->getAssociationNames());
+        $fieldNames = array_merge($this->objectMetadata->getFieldNames(), []);
+//        dump($fieldNames);
+        //dump($item);
         foreach ($fieldNames as $fieldName) {
+
             $value = null;
             $classifiedFieldName = Inflector::classify($fieldName);
-            if (isset($item[$fieldName])) {
+            if (array_key_exists($fieldName, $item)) {
                 $value = $item[$fieldName];
+            } elseif (method_exists($item, 'get' . $classifiedFieldName)) {
+                $value = $item->{'get' . $classifiedFieldName};
             }
+            else continue;
 
             if (null === $value) {
-                continue;
+                //continue;
             }
+
+//            dump($value);
 
             if (!($value instanceof \DateTime)
                 || $value != $this->objectMetadata->getFieldValue($object, $fieldName)
@@ -259,17 +290,24 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
     {
         foreach ($this->objectMetadata->getAssociationMappings() as $associationMapping) {
 
+            $fieldName = $associationMapping['fieldName'];
             $value = null;
-            if (isset($item[$associationMapping['fieldName']]) && !is_object($item[$associationMapping['fieldName']])) {
-                $value = $this->objectManager->getReference($associationMapping['targetEntity'], $item[$associationMapping['fieldName']]);
+            if (isset($item[$fieldName]) && !is_object($item[$fieldName])) {
+                if(!empty($item[$fieldName]))   $value = $this->objectManager->getReference($associationMapping['targetEntity'], $item[$fieldName]);
+            }
+            else if(isset($item[$fieldName])){
+                $value = $item[$fieldName];
             }
 
+            //dump($value);
             if (null === $value) {
-                continue;
+                // continue;
+            }
+            if (array_key_exists($fieldName, $item)){
+                $setter = 'set' . ucfirst($fieldName);
+                $this->setValue($object, $value, $setter);
             }
 
-            $setter = 'set' . ucfirst($associationMapping['fieldName']);
-            $this->setValue($object, $value, $setter);
         }
     }
 
@@ -351,4 +389,27 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
             throw new UnsupportedDatabaseTypeException($objectManager);
         }
     }
+
+    public function addDefaultFields(array $data){
+
+        $this->defaultFields = $data;
+    }
+
+    /**
+     * @return int
+     */
+    public function getDoctrineFlushQueueSize(): int
+    {
+        return $this->_doctrineFlushQueueSize;
+    }
+
+    /**
+     * @param int $doctrineFlushQueueSize
+     */
+    public function setDoctrineFlushQueueSize(int $doctrineFlushQueueSize)
+    {
+        $this->_doctrineFlushQueueSize = $doctrineFlushQueueSize;
+    }
+
+
 }
