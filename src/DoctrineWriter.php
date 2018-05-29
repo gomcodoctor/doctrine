@@ -186,7 +186,7 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
      */
     public function writeItem(array $item)
     {
-        $item = array_merge($this->defaultFields, $item);
+        $item =  $this->mergeDefaultValues($item);
 //        dump($item);
         $object = $this->findOrCreateItem($item);
 
@@ -411,5 +411,15 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
         $this->_doctrineFlushQueueSize = $doctrineFlushQueueSize;
     }
 
+    public function mergeDefaultValues($item){
+        foreach($this->defaultFields as $key => $value){
+            if(isset($item[$key])){
+                if(empty($item[$key])) $item[$key] = $value;
+            }
+            else $item[$key] =$value;
+        }
+        return $item;
+
+    }
 
 }
