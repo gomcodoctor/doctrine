@@ -2,9 +2,9 @@
 
 namespace Port\Doctrine;
 
+use Doctrine\Inflector\InflectorFactory;
 use Port\Doctrine\Exception\UnsupportedDatabaseTypeException;
 use Port\Writer;
-use Doctrine\Common\Util\Inflector;
 use Doctrine\DBAL\Logging\SQLLogger;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\Common\Persistence\Mapping\ClassMetadata;
@@ -83,7 +83,7 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
 
     /** @var int  */
     protected $_doctrineFlushQueueSize = 20;
-    
+
     private Inflector $inflector;
 
 
@@ -97,9 +97,9 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
      */
     public function __construct(
         ObjectManager $objectManager,
-        $objectName,
-        $index = null,
-        $lookupMethod = 'findOneBy'
+                      $objectName,
+                      $index = null,
+                      $lookupMethod = 'findOneBy'
     ) {
         $this->ensureSupportedObjectManager($objectManager);
         $this->objectManager = $objectManager;
