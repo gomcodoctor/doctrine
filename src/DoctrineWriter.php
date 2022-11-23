@@ -2,12 +2,13 @@
 
 namespace Port\Doctrine;
 
+use Doctrine\Inflector\Inflector;
 use Doctrine\Inflector\InflectorFactory;
+use Doctrine\ORM\EntityManagerInterface;
 use Port\Doctrine\Exception\UnsupportedDatabaseTypeException;
 use Port\Writer;
 use Doctrine\DBAL\Logging\SQLLogger;
-use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\Common\Persistence\Mapping\ClassMetadata;
+
 
 /**
  * A bulk Doctrine writer
@@ -23,7 +24,7 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
     /**
      * Doctrine object manager
      *
-     * @var ObjectManager
+     * @var EntityManagerInterface
      */
     protected $objectManager;
 
@@ -83,23 +84,23 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
 
     /** @var int  */
     protected $_doctrineFlushQueueSize = 20;
-
+    
     private Inflector $inflector;
 
 
     /**
      * Constructor
      *
-     * @param ObjectManager $objectManager
+     * @param EntityManagerInterface $objectManager
      * @param string        $objectName
      * @param string|array  $index         Field or fields to find current entities by
      * @param string        $lookupMethod  Method used for looking up the item
      */
     public function __construct(
-        ObjectManager $objectManager,
-                      $objectName,
-                      $index = null,
-                      $lookupMethod = 'findOneBy'
+        EntityManagerInterface $objectManager,
+        $objectName,
+        $index = null,
+        $lookupMethod = 'findOneBy'
     ) {
         $this->ensureSupportedObjectManager($objectManager);
         $this->objectManager = $objectManager;
@@ -264,7 +265,7 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
             $classifiedFieldName = $this->inflector->classify($fieldName);
             if (array_key_exists($fieldName, $item)) {
                 $value = $item[$fieldName];
-            } elseif (method_exists($item, 'get' . $classifiedFieldName)) {
+            } elseif (is_object($item) && method_exists($item, 'get' . $classifiedFieldName)) {
                 $value = $item->{'get' . $classifiedFieldName};
             }
             else continue;
@@ -385,9 +386,9 @@ class DoctrineWriter implements Writer, Writer\FlushableWriter
         return $object;
     }
 
-    protected function ensureSupportedObjectManager(ObjectManager $objectManager)
+    protected function ensureSupportedObjectManager($objectManager)
     {
-        if (!($objectManager instanceof \Doctrine\ORM\EntityManager
+        if (!($objectManager instanceof EntityManagerInterface
             || $objectManager instanceof \Doctrine\ODM\MongoDB\DocumentManager)
         ) {
             throw new UnsupportedDatabaseTypeException($objectManager);
