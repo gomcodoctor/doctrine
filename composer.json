@@ -24,7 +24,7 @@
     },
     "require": {
         "php": ">=7.4",
-        "portphp/portphp": "^1.0.0",
+        "portphp/portphp": "dev-master",
         "doctrine/common": "^2.13 || ^3.0"
     },
     "require-dev": {
