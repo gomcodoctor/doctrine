@@ -25,14 +25,10 @@
     "require": {
         "php": ">=7.4",
         "portphp/portphp": "dev-master",
-        "doctrine/common": "^2.13 || ^3.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",
-        "ext-sqlite3": "*",
-        "doctrine/cache": "^1.11",
-        "doctrine/orm": "^2.8",
-        "doctrine/mongodb-odm": "^2.0"
+        "ext-sqlite3": "*"
     },
     "autoload": {
         "psr-4": {
